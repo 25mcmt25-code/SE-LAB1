@@ -20,12 +20,13 @@ struct Student_list
     };
 
 int search_student_by_id(struct Student_list *head, char *id) {
+    int valid=0;
     while (head != NULL) {
         if (strcmp(head->data->id, id) == 0)
-            return 1;
+            valid= 1;
         head = head->next;
     }
-    return 0;
+    return valid;
 }
 
 int is_valid_id(char id[10],struct Student_list * head){
@@ -99,23 +100,23 @@ struct Student_list * insert_student(struct Student_list * head, struct Student 
     head = new_node;
     return head;
 }
-float cgpa(float percentage){
+int cgpa(float percentage){
     if(percentage>=90)
-        return 10.0;
+        return 10;
     else if(percentage>=85)
-        return 9.0;
+        return 9;
     else if(percentage>=75)
-        return 8.0;
+        return 8;
     else if(percentage>=65)
-        return 7.0;
+        return 7;
     else if(percentage>=60)
-        return 6.0;
+        return 6;
     else if(percentage>=55)
-        return 5.0;
+        return 5;
     else if(percentage>=50)
-        return 4.0;
+        return 4;
     else
-        return 0.0;
+        return 0;
 }
 
 struct Student_list* create_student(int n)
@@ -168,7 +169,7 @@ void print_students(struct Student_list * head , FILE *fp){
     fprintf(fp,"ID\t\tName\tTotal Marks\tPercentage\tGrade\tCGPA\n");
     while(current != NULL){
         struct Student * student = current->data;
-        fprintf(fp,"%s,  \t%s,  \t%d,  \t%.2f,  \t%s,  \t%.2f\n",
+        fprintf(fp,"%s,  \t%s,  \t%d,  \t%.2f,  \t%s,  \t%d.0\n",
                student->id, student->name, student->total_marks, student->percentage, student->grade, student->cgpa);
         current = current->next;
     }
