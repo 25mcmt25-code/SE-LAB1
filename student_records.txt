@@ -1,0 +1,10 @@
+ID		Name	Total Marks	Percentage	Grade	CGPA
+25mcmt35,  	veeru,  	400,  	80.00,  	A,  	8.00
+25mcmt14,  	bhanu,  	401,  	80.20,  	A,  	8.00
+25mcmt25,  	kishore,  	456,  	91.20,  	O,  	10.00
+Highest Percentage: 91.20
+Lowest Percentage: 80.00
+Average Percentage: 83.80
+Number of students in each grade:
+O	A+	A	B+	B	C	D	F
+1	0	2	0	0	0	0	0

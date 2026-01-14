@@ -99,6 +99,24 @@ struct Student_list * insert_student(struct Student_list * head, struct Student 
     head = new_node;
     return head;
 }
+float cgpa(float percentage){
+    if(percentage>=90)
+        return 10.0;
+    else if(percentage>=85)
+        return 9.0;
+    else if(percentage>=75)
+        return 8.0;
+    else if(percentage>=65)
+        return 7.0;
+    else if(percentage>=60)
+        return 6.0;
+    else if(percentage>=55)
+        return 5.0;
+    else if(percentage>=50)
+        return 4.0;
+    else
+        return 0.0;
+}
 
 struct Student_list* create_student(int n)
 {
@@ -137,7 +155,7 @@ struct Student_list* create_student(int n)
         }
         student->total_marks=total_marks(student->minor , student->major);
         student->percentage=(student->total_marks/500.0)*100;
-        student->cgpa=(student->percentage/100)*4.0;
+        student->cgpa=cgpa(student->percentage);
         strcpy(student->grade, grade(student->percentage));
         n--;
         head=insert_student(head,student);
@@ -150,7 +168,7 @@ void print_students(struct Student_list * head , FILE *fp){
     fprintf(fp,"ID\t\tName\tTotal Marks\tPercentage\tGrade\tCGPA\n");
     while(current != NULL){
         struct Student * student = current->data;
-        fprintf(fp,"%s,  \t%s,  \t%d,  \t%.2f,  \t%c,  \t%.2f\n",
+        fprintf(fp,"%s,  \t%s,  \t%d,  \t%.2f,  \t%s,  \t%.2f\n",
                student->id, student->name, student->total_marks, student->percentage, student->grade, student->cgpa);
         current = current->next;
     }
@@ -210,11 +228,12 @@ void Number_of_students_in_each_grade(struct Student_list * head, FILE *fp){
 
 
     fprintf(fp,"Number of students in each grade:\n");
-    fprintf(fp,"A\tB\tC\tD\tF\n");
-    fprintf(fp,"%d\t%d\t%d\t%d\t%d\n",
+    fprintf(fp,"O\tA+\tA\tB+\tB\tC\tD\tF\n");
+    fprintf(fp,"%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\n",
            grade_count[0], grade_count[1],
            grade_count[2], grade_count[3],
-           grade_count[4]);
+           grade_count[4], grade_count[5],
+           grade_count[6], grade_count[7]);
 }
 
 int main(){
