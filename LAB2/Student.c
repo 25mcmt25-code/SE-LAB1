@@ -17,8 +17,7 @@ int search_by_id(struct Student* head , const char * id){
         if(strcmp(head->id,id)){
             return 1;
         }
-        else{
-            return 0;
-        }
+        head=head->next;
     }
+    return 0;
 }

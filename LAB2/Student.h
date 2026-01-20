@@ -14,6 +14,7 @@ struct Student {
     float percentage;
     char grade[3];
     float cgpa;
+    struct Student * next;
 };
 
 struct Student* student_create(char id[10], char name[50], struct subject subjects[5]);
