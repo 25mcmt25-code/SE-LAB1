@@ -1,0 +1,62 @@
+<!doctype html>
+<html ng-app="lab4App">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Student Results — AngularJS client</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.3/angular.min.js"></script>
+    <script src="app.js"></script>
+  </head>
+  <body ng-controller="MainCtrl as vm">
+    <div class="container">
+      <h2>Student Results — AngularJS client</h2>
+
+      <form ng-submit="vm.upload($event)">
+        <label>CSV file: <input type="file" id="csvFile" accept=".csv" /></label>
+        <button type="button" ng-click="vm.upload()">Upload</button>
+        <span class="error">{{vm.msg}}</span>
+      </form>
+
+      <button ng-click="vm.fetchReportAndStudents()">Refresh Students / Report</button>
+
+      <h3>Report</h3>
+      <pre>{{vm.report | json}}</pre>
+
+      <h3>Students</h3>
+      <div ng-if="!vm.students || vm.students.length === 0"><i>No students</i></div>
+      <table ng-if="vm.students && vm.students.length">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>S1 (M/J)</th>
+            <th>S2 (M/J)</th>
+            <th>S3 (M/J)</th>
+            <th>S4 (M/J)</th>
+            <th>S5 (M/J)</th>
+            <th>Total</th>
+            <th>%</th>
+            <th>Grade</th>
+            <th>CGPA</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr ng-repeat="s in vm.students">
+            <td>{{s.studentId}}</td>
+            <td>{{s.name}}</td>
+            <td>{{s.marks[0]}}/{{s.marks[1]}}</td>
+            <td>{{s.marks[2]}}/{{s.marks[3]}}</td>
+            <td>{{s.marks[4]}}/{{s.marks[5]}}</td>
+            <td>{{s.marks[6]}}/{{s.marks[7]}}</td>
+            <td>{{s.marks[8]}}/{{s.marks[9]}}</td>
+            <td>{{s.total}}</td>
+            <td>{{s.percentage}}%</td>
+            <td>{{s.grade}}</td>
+            <td>{{s.cgpa}}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </body>
+</html>
