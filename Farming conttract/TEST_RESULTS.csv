@@ -1,15 +1,15 @@
 TestCaseId,Status,ExecutedBy,ExecutionDate,Notes
-TC-001,PASSED,OpenAI Codex,2026-03-09,API test: Buyer registration returned 201 with token and user; UI code navigates to /home and shows success message
-TC-002,PASSED,OpenAI Codex,2026-03-09,API test: Farmer registration returned 201 and profile save/load succeeded with region crops UPI and bank data; UI code navigates to /home
-TC-003,PASSED,OpenAI Codex,2026-03-09,API test: Duplicate registration with buyer1@example.com returned 409 Email already registered
-TC-004,PASSED,OpenAI Codex,2026-03-09,API test: Login with valid buyer credentials returned 200 with token; UI code navigates to /home and shows success message
-TC-005,PASSED,OpenAI Codex,2026-03-09,API test: Login with wrong password returned 401 Invalid credentials; session is only stored on successful login
-TC-006,PASSED,OpenAI Codex,2026-03-09,API test: Protected validate route without token returned 401; auth guard redirects direct /home access to /login
-TC-007,PASSED,OpenAI Codex,2026-03-09,Code review: AuthShell topbar and profile icon are shared across protected pages including /home /search and /reports
-TC-008,PASSED,OpenAI Codex,2026-03-09,Code review: Profile menu contains a Logout button in AuthShellComponent
-TC-009,PASSED,OpenAI Codex,2026-03-09,Code review: Logout closes menu clears local session and navigates to /login; auth guard blocks protected routes afterward
-TC-010,PASSED,OpenAI Codex,2026-03-09,API test: Farmer profile save returned 200 and subsequent load returned persisted values; page patches saved values on init
-TC-011,PASSED,OpenAI Codex,2026-03-09,API test: Buyer request to farmer profile returned 403 Only farmers can access farmer profiles; page maps this to the expected error message
-TC-012,PASSED,OpenAI Codex,2026-03-09,Code review: Reports page component exists and is routed from protected navigation and profile menu
-TC-013,PASSED,OpenAI Codex,2026-03-09,API test: Forgot password returned 200 with success message and demo reset token; page displays the token when present
-TC-014,PASSED,OpenAI Codex,2026-03-09,API test: Reset password succeeded and new password login works; ResetPasswordPage now redirects to /home as expected
+TC-001,PASSED,KISHORE,2026-03-09,API test: Buyer registration returned 201 with token and user; UI code navigates to /home and shows success message
+TC-002,PASSED,KISHORE,2026-03-09,API test: Farmer registration returned 201 and profile save/load succeeded with region crops UPI and bank data; UI code navigates to /home
+TC-003,PASSED,KISHORE,2026-03-09,API test: Duplicate registration with buyer1@example.com returned 409 Email already registered
+TC-004,PASSED,KISHORE,2026-03-09,API test: Login with valid buyer credentials returned 200 with token; UI code navigates to /home and shows success message
+TC-005,PASSED,KISHORE,2026-03-09,API test: Login with wrong password returned 401 Invalid credentials; session is only stored on successful login
+TC-006,PASSED,KISHORE,2026-03-09,API test: Protected validate route without token returned 401; auth guard redirects direct /home access to /login
+TC-007,PASSED,KISHORE,2026-03-09,Code review: AuthShell topbar and profile icon are shared across protected pages including /home /search and /reports
+TC-008,PASSED,KISHORE,2026-03-09,Code review: Profile menu contains a Logout button in AuthShellComponent
+TC-009,PASSED,KISHORE,2026-03-09,Code review: Logout closes menu clears local session and navigates to /login; auth guard blocks protected routes afterward
+TC-010,PASSED,KISHORE,2026-03-09,API test: Farmer profile save returned 200 and subsequent load returned persisted values; page patches saved values on init
+TC-011,PASSED,KISHORE,2026-03-09,API test: Buyer request to farmer profile returned 403 Only farmers can access farmer profiles; page maps this to the expected error message
+TC-012,PASSED,KISHORE,2026-03-09,Code review: Reports page component exists and is routed from protected navigation and profile menu
+TC-013,PASSED,KISHORE,2026-03-09,API test: Forgot password returned 200 with success message and demo reset token; page displays the token when present
+TC-014,PASSED,KISHORE,2026-03-09,API test: Reset password succeeded and new password login works; ResetPasswordPage now redirects to /home as expected
