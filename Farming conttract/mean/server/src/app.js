@@ -8,10 +8,22 @@ const authRoutes = require('./routes/auth');
 const farmerProfileRoutes = require('./routes/farmerProfile');
 
 const app = express();
+const configuredOrigins = (process.env.CLIENT_ORIGIN || '')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+const localDevOrigins = ['http://localhost:4200', 'http://127.0.0.1:4200'];
+const allowedOrigins = [...new Set([...configuredOrigins, ...localDevOrigins])];
 
 app.use(
   cors({
-    origin: process.env.CLIENT_ORIGIN || true,
+    origin(origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      return callback(new Error(`CORS blocked for origin: ${origin}`));
+    },
     credentials: true,
   })
 );

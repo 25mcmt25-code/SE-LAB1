@@ -1,0 +1,15 @@
+
+> client-angular@0.0.0 start
+> ng serve --host 127.0.0.1
+
+Initial chunk files | Names         |  Raw size
+polyfills.js        | polyfills     |  88.09 kB | 
+main.js             | main          |  61.15 kB | 
+styles.css          | styles        |   3.16 kB | 
+
+                    | Initial total | 152.39 kB
+
+Application bundle generation complete. [4.468 seconds]
+
+Watch mode enabled. Watching for file changes...
+  ➜  Local:   http://127.0.0.1:4200/

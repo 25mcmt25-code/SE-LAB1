@@ -1,0 +1,6 @@
+
+> acf-mean-server@1.0.0 start
+> node server.js
+
+Server listening on port 5000
+MongoDB connected
