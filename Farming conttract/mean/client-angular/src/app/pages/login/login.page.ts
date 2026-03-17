@@ -1,39 +1,40 @@
 import { Component } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 
 import { AuthService } from '../../auth/auth.service';
 
 @Component({
-  selector: 'app-login-page',
-  standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink],
-  template: `
+    selector: 'app-login-page',
+    imports: [ReactiveFormsModule, RouterLink],
+    template: `
     <div class="container">
       <div class="card">
         <div class="header">
           <h2>Login</h2>
         </div>
-
+    
         <form class="row" [formGroup]="form" (ngSubmit)="onSubmit()">
           <label>
             Email
             <input type="email" formControlName="email" />
           </label>
-
+    
           <label>
             Password
             <input type="password" formControlName="password" />
           </label>
-
-          <div class="error" *ngIf="error">{{ error }}</div>
-
+    
+          @if (error) {
+            <div class="error">{{ error }}</div>
+          }
+    
           <button type="submit" [disabled]="form.invalid || loading">
             {{ loading ? 'Signing in...' : 'Login' }}
           </button>
         </form>
-
+    
         <p>
           <a routerLink="/forgot-password">Forgot password?</a>
         </p>
@@ -42,7 +43,7 @@ import { AuthService } from '../../auth/auth.service';
         </p>
       </div>
     </div>
-  `
+    `
 })
 export class LoginPage {
   loading = false;

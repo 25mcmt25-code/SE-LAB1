@@ -1,49 +1,54 @@
 import { Component } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 
 import { AuthService } from '../../auth/auth.service';
 
 @Component({
-  selector: 'app-forgot-password-page',
-  standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink],
-  template: `
+    selector: 'app-forgot-password-page',
+    imports: [ReactiveFormsModule, RouterLink],
+    template: `
     <div class="container">
       <div class="card">
         <div class="header">
           <h2>Forgot Password</h2>
         </div>
-
+    
         <form class="row" [formGroup]="form" (ngSubmit)="onSubmit()">
           <label>
             Email
             <input type="email" formControlName="email" />
           </label>
-
-          <div class="error" *ngIf="error">{{ error }}</div>
-          <div *ngIf="message">{{ message }}</div>
-
+    
+          @if (error) {
+            <div class="error">{{ error }}</div>
+          }
+          @if (message) {
+            <div>{{ message }}</div>
+          }
+    
           <button type="submit" [disabled]="form.invalid || loading">
             {{ loading ? 'Requesting...' : 'Request reset token' }}
           </button>
         </form>
-
-        <div *ngIf="resetToken" style="margin-top: 12px">
-          <div>Reset token (demo):</div>
-          <pre style="white-space: pre-wrap">{{ resetToken }}</pre>
-          <p>
-            Go to <a routerLink="/reset-password">Reset Password</a>
-          </p>
-        </div>
-
+    
+        @if (resetToken) {
+          <div style="margin-top: 12px">
+            <div>Reset token (demo):</div>
+            <pre style="white-space: pre-wrap">{{ resetToken }}</pre>
+            <p>
+              Go to <a routerLink="/reset-password">Reset Password</a>
+            </p>
+          </div>
+        }
+    
         <p style="margin-top: 12px">
           <a routerLink="/login">Back to login</a>
         </p>
       </div>
     </div>
-  `
+    `
 })
 export class ForgotPasswordPage {
   loading = false;

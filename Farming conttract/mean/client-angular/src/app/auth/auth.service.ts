@@ -9,6 +9,8 @@ export interface AuthUser {
   name: string;
   email: string;
   role: UserRole;
+  desiredCrops?: string[];
+  savedCard?: SavedBuyerCard | null;
 }
 
 export interface AuthResponse {
@@ -27,6 +29,32 @@ export interface FarmerProfile {
     ifsc?: string;
     bankName?: string;
   };
+}
+
+export interface SavedBuyerCard {
+  cardHolderName: string;
+  cardBrand: string;
+  last4: string;
+  expiryMonth: string;
+  expiryYear: string;
+}
+
+export interface PublicFarmerProfile {
+  id: string;
+  name: string;
+  email: string;
+  role: 'farmer';
+  region: string;
+  crops: string[];
+  bio: string;
+}
+
+export interface PublicBuyerProfile {
+  id: string;
+  name: string;
+  email: string;
+  role: 'buyer';
+  desiredCrops: string[];
 }
 
 @Injectable({
@@ -55,7 +83,11 @@ export class AuthService {
 
   setSession(resp: AuthResponse): void {
     localStorage.setItem(this.tokenKey, resp.token);
-    localStorage.setItem(this.userKey, JSON.stringify(resp.user));
+    this.setStoredUser(resp.user);
+  }
+
+  private setStoredUser(user: AuthUser): void {
+    localStorage.setItem(this.userKey, JSON.stringify(user));
   }
 
   clearSession(): void {
@@ -63,7 +95,19 @@ export class AuthService {
     localStorage.removeItem(this.userKey);
   }
 
-  register(payload: { name: string; email: string; password: string; role: UserRole }): Observable<AuthResponse> {
+  register(payload: {
+    name: string;
+    email: string;
+    password: string;
+    role: UserRole;
+    desiredCrops?: string[];
+    savedCard?: {
+      cardHolderName: string;
+      cardNumber: string;
+      expiryMonth: string;
+      expiryYear: string;
+    } | null;
+  }): Observable<AuthResponse> {
     return this.http
       .post<AuthResponse>(`${this.apiUrl}/api/auth/register`, payload)
       .pipe(tap((resp) => this.setSession(resp)));
@@ -99,5 +143,24 @@ export class AuthService {
 
   saveMyFarmerProfile(payload: FarmerProfile): Observable<{ message: string; profile: FarmerProfile }> {
     return this.http.put<{ message: string; profile: FarmerProfile }>(`${this.apiUrl}/api/farmer-profile/me`, payload);
+  }
+
+  browseFarmers(): Observable<{ profiles: PublicFarmerProfile[] }> {
+    return this.http.get<{ profiles: PublicFarmerProfile[] }>(`${this.apiUrl}/api/profile-browse/farmers`);
+  }
+
+  browseBuyers(): Observable<{ profiles: PublicBuyerProfile[] }> {
+    return this.http.get<{ profiles: PublicBuyerProfile[] }>(`${this.apiUrl}/api/profile-browse/buyers`);
+  }
+
+  saveBuyerPaymentCard(payload: {
+    cardHolderName: string;
+    cardNumber: string;
+    expiryMonth: string;
+    expiryYear: string;
+  }): Observable<{ message: string; user: AuthUser }> {
+    return this.http
+      .put<{ message: string; user: AuthUser }>(`${this.apiUrl}/api/auth/buyer-payment/me`, payload)
+      .pipe(tap((resp) => this.setStoredUser(resp.user)));
   }
 }

@@ -1,0 +1,10 @@
+﻿BacklogId,UserStory,Module,Priority,StoryPoints,Status,AcceptanceCriteria
+S1-BL-001,"As a developer, I want a runnable MEAN project scaffold so that the team can start feature work quickly",Project Setup,High,5,Done,"Client and server apps start locally; environment variables are documented"
+S1-BL-002,"As a user, I want to register an account so that I can access protected features",Authentication,High,8,Done,"Register API validates input; unique email is enforced; JWT token is returned"
+S1-BL-003,"As a user, I want to log in securely so that I can continue with my role-based workflow",Authentication,High,5,Done,"Valid credentials return token and profile; invalid credentials return 401"
+S1-BL-004,"As a user, I want forgot/reset password support so that I can recover account access",Authentication,Medium,5,Done,"Forgot password generates reset token; reset password updates hash and logs in user"
+S1-BL-005,"As a user, I want login and registration screens so that I can create and access my account",Frontend Auth Pages,High,8,Done,"Login, register, forgot, and reset pages submit correctly and show errors"
+S1-BL-006,"As a system, I want session guard and token injection so that protected APIs stay secure",Auth Guard and Interceptor,High,5,Done,"Protected routes redirect to /login when token is missing; auth header is attached for API calls"
+S1-BL-007,"As a signed-in user, I want a home page so that I can view basic account status",Home and Routing,Medium,3,Done,"Home route is protected; signed-in user details are rendered"
+S1-BL-008,"As a tester, I want seeded demo accounts so that authentication flows can be validated quickly",Database Seed,Medium,3,Done,"Seed script creates or updates demo farmer and buyer accounts with known credentials"
+S1-BL-009,"As a QA member, I want Sprint 1 test coverage so that auth regressions are caught early",QA and Test Artifacts,Medium,3,Done,"Core auth and routing test cases are documented and executable"

@@ -1,17 +1,33 @@
 import { Component } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { Router, RouterLink, RouterOutlet } from '@angular/router';
 
 import { AuthService } from '../auth/auth.service';
 
 @Component({
-  selector: 'app-auth-shell',
-  standalone: true,
-  imports: [CommonModule, RouterOutlet, RouterLink],
-  template: `
+    selector: 'app-auth-shell',
+    imports: [RouterOutlet, RouterLink],
+    template: `
     <div class="topbar">
       <div class="topbar-inner">
         <a class="brand" routerLink="/home">Assured Contract Farming</a>
+
+        <nav class="quick-nav" aria-label="Main navigation">
+          <a class="nav-pill" routerLink="/home">
+            <span class="nav-pill-icon home"></span>
+            <span>Home</span>
+          </a>
+          <a class="nav-pill" routerLink="/search">
+            <span class="nav-pill-icon browse"></span>
+            <span>{{ browseLabel }}</span>
+          </a>
+          @if (isFarmer) {
+            <a class="nav-pill" routerLink="/farmer-profile">
+              <span class="nav-pill-icon profile"></span>
+              <span>My Profile</span>
+            </a>
+          }
+        </nav>
 
         <div class="spacer"></div>
 
@@ -19,22 +35,25 @@ import { AuthService } from '../auth/auth.service';
           <button class="profile-btn" type="button" (click)="toggleMenu()" aria-label="Profile menu">
             <span class="profile-dot"></span>
           </button>
-
-          <div class="menu" *ngIf="menuOpen">
-            <a class="menu-item" routerLink="/home" (click)="closeMenu()">Home</a>
-            <a class="menu-item" routerLink="/reports" (click)="closeMenu()">Reports</a>
-            <a class="menu-item" routerLink="/support" (click)="closeMenu()">Support</a>
-
-            <a *ngIf="isFarmer" class="menu-item" routerLink="/farmer-profile" (click)="closeMenu()">My Profile</a>
-
-            <button class="menu-item danger" type="button" (click)="logout()">Logout</button>
-          </div>
+    
+          @if (menuOpen) {
+            <div class="menu">
+              <a class="menu-item" routerLink="/home" (click)="closeMenu()">Home</a>
+              <a class="menu-item" routerLink="/search" (click)="closeMenu()">{{ browseLabel }}</a>
+              <a class="menu-item" routerLink="/reports" (click)="closeMenu()">Reports</a>
+              <a class="menu-item" routerLink="/support" (click)="closeMenu()">Support</a>
+              @if (isFarmer) {
+                <a class="menu-item" routerLink="/farmer-profile" (click)="closeMenu()">My Profile</a>
+              }
+              <button class="menu-item danger" type="button" (click)="logout()">Logout</button>
+            </div>
+          }
         </div>
       </div>
     </div>
-
+    
     <router-outlet />
-  `
+    `
 })
 export class AuthShellComponent {
   menuOpen = false;
@@ -43,6 +62,10 @@ export class AuthShellComponent {
 
   get isFarmer(): boolean {
     return this.auth.getUser()?.role === 'farmer';
+  }
+
+  get browseLabel(): string {
+    return this.isFarmer ? 'Browse Buyers' : 'Browse Farmers';
   }
 
   toggleMenu() {

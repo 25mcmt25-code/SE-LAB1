@@ -1,12 +1,11 @@
 import { Component } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { RouterLink } from '@angular/router';
 
 @Component({
-  selector: 'app-support-page',
-  standalone: true,
-  imports: [CommonModule, RouterLink],
-  template: `
+    selector: 'app-support-page',
+    imports: [RouterLink],
+    template: `
     <div class="container">
       <div class="card">
         <div class="header">

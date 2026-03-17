@@ -6,6 +6,7 @@ const cors = require('cors');
 const connectDb = require('./config/db');
 const authRoutes = require('./routes/auth');
 const farmerProfileRoutes = require('./routes/farmerProfile');
+const profileBrowseRoutes = require('./routes/profileBrowse');
 
 const app = express();
 const configuredOrigins = (process.env.CLIENT_ORIGIN || '')
@@ -35,6 +36,7 @@ app.get('/health', (req, res) => {
 
 app.use('/api/auth', authRoutes);
 app.use('/api/farmer-profile', farmerProfileRoutes);
+app.use('/api/profile-browse', profileBrowseRoutes);
 
 app.use((err, req, res, next) => {
   const status = err.statusCode || 500;

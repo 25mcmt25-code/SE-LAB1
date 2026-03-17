@@ -8,13 +8,19 @@ const userSchema = new mongoose.Schema(
     email: { type: String, required: true, unique: true, lowercase: true, trim: true },
     passwordHash: { type: String, required: true },
     role: { type: String, enum: USER_ROLES, required: true },
+    desiredCrops: [{ type: String, trim: true, maxlength: 60 }],
+    savedCard: {
+      cardHolderName: { type: String, trim: true, maxlength: 120 },
+      cardBrand: { type: String, trim: true, maxlength: 30 },
+      last4: { type: String, trim: true, maxlength: 4 },
+      expiryMonth: { type: String, trim: true, maxlength: 2 },
+      expiryYear: { type: String, trim: true, maxlength: 4 },
+    },
     resetPasswordTokenHash: { type: String },
     resetPasswordExpiresAt: { type: Date },
   },
   { timestamps: true }
 );
-
-userSchema.index({ email: 1 }, { unique: true });
 
 const User = mongoose.model('User', userSchema);
 

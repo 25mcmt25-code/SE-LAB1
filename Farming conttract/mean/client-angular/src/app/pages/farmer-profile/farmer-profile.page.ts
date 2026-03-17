@@ -1,48 +1,88 @@
 import { Component, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 
 import { AuthService, FarmerProfile } from '../../auth/auth.service';
 
 @Component({
-  selector: 'app-farmer-profile-page',
-  standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink],
-  template: `
-    <div class="container">
-      <div class="card">
+    selector: 'app-farmer-profile-page',
+    imports: [ReactiveFormsModule, RouterLink],
+    template: `
+    <div class="container page-stack">
+      <section class="card">
         <div class="header">
           <h2>Farmer Profile</h2>
           <a routerLink="/home">Back</a>
         </div>
 
-        <div *ngIf="message" style="margin-bottom: 12px">{{ message }}</div>
-        <div class="error" *ngIf="error" style="margin-bottom: 12px">{{ error }}</div>
+        <div class="friendly-hero">
+          <div class="friendly-picture" aria-hidden="true">
+            <svg viewBox="0 0 220 150" class="register-svg">
+              <rect x="18" y="96" width="184" height="34" rx="10" class="soil-band"></rect>
+              <path d="M34 96 V60" class="crop-stem"></path>
+              <path d="M34 72 C22 64, 22 54, 33 49" class="crop-leaf"></path>
+              <path d="M34 80 C47 72, 47 62, 36 57" class="crop-leaf"></path>
+              <path d="M90 96 V54" class="crop-stem"></path>
+              <path d="M90 66 C76 57, 76 47, 88 41" class="crop-leaf"></path>
+              <path d="M90 76 C104 66, 104 55, 92 50" class="crop-leaf"></path>
+              <path d="M148 96 V70" class="crop-stem"></path>
+              <path d="M148 80 C138 73, 138 64, 147 60" class="crop-leaf"></path>
+              <path d="M148 85 C159 78, 159 69, 149 64" class="crop-leaf"></path>
+              <circle cx="174" cy="34" r="16" class="sun-shape"></circle>
+            </svg>
+          </div>
+          <div class="friendly-copy">
+            <strong>Complete your farm card</strong>
+            <div class="visual-steps compact">
+              <div class="visual-step"><span class="visual-step-icon field"></span><span>Add region</span></div>
+              <div class="visual-step"><span class="visual-step-icon list"></span><span>Add crops</span></div>
+              <div class="visual-step"><span class="visual-step-icon deal"></span><span>Save details</span></div>
+            </div>
+          </div>
+        </div>
 
+        @if (message) {
+          <div class="notice success-banner">{{ message }}</div>
+        }
+        @if (error) {
+          <div class="notice error-banner">{{ error }}</div>
+        }
+        @if (setupPending) {
+          <div class="notice success-banner">
+            Your account was created. Finish the farmer profile and payment details here to complete Sprint 2 setup.
+          </div>
+        }
+      </section>
+
+      <section class="card">
         <form class="row" [formGroup]="form" (ngSubmit)="onSave()">
           <label>
             Region
             <input formControlName="region" placeholder="e.g. Tamil Nadu, Coimbatore" />
+            <span class="input-hint">Write the village, district, or state buyers know.</span>
           </label>
 
           <label>
             Crops (comma separated)
             <input formControlName="crops" placeholder="e.g. rice, wheat, sugarcane" />
+            <span class="input-hint">Separate crop names with commas.</span>
           </label>
 
           <label>
             Short bio (optional)
-            <input formControlName="bio" placeholder="About your farm..." />
+            <textarea formControlName="bio" rows="4" placeholder="About your farm..."></textarea>
+            <span class="input-hint">One or two lines are enough.</span>
           </label>
 
           <label>
             UPI ID (optional)
             <input formControlName="upiId" placeholder="e.g. name@upi" />
+            <span class="input-hint">Add this if you want fast payment.</span>
           </label>
 
-          <div class="row">
-            <div style="font-weight: 600">Bank details (optional)</div>
+          <div class="row farm-form-panel">
+            <div class="role-card-copy" style="font-weight: 700; color: #334155;">Bank details (optional)</div>
             <label>
               Account holder name
               <input formControlName="accountHolderName" placeholder="Account holder name" />
@@ -60,19 +100,20 @@ import { AuthService, FarmerProfile } from '../../auth/auth.service';
               <input formControlName="bankName" placeholder="Bank name" />
             </label>
           </div>
-
+    
           <button type="submit" [disabled]="form.invalid || saving">
             {{ saving ? 'Saving...' : 'Save profile' }}
           </button>
         </form>
-      </div>
+      </section>
     </div>
-  `
+    `
 })
 export class FarmerProfilePage implements OnInit {
   saving = false;
   error = '';
   message = '';
+  setupPending = false;
 
   form = this.fb.group({
     region: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(120)]],
@@ -85,9 +126,11 @@ export class FarmerProfilePage implements OnInit {
     bankName: ['']
   });
 
-  constructor(private fb: FormBuilder, private auth: AuthService) {}
+  constructor(private fb: FormBuilder, private auth: AuthService, private route: ActivatedRoute) {}
 
   ngOnInit() {
+    this.setupPending = this.route.snapshot.queryParamMap.get('setup') === 'pending';
+
     this.auth.getMyFarmerProfile().subscribe({
       next: (data) => {
         if (!data.profile) return;
@@ -135,6 +178,7 @@ export class FarmerProfilePage implements OnInit {
     this.auth.saveMyFarmerProfile(payload).subscribe({
       next: () => {
         this.saving = false;
+        this.setupPending = false;
         this.message = 'Profile saved successfully';
       },
       error: (err) => {

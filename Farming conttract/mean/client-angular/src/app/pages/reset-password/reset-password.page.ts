@@ -1,51 +1,54 @@
 import { Component } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 
 import { AuthService } from '../../auth/auth.service';
 
 @Component({
-  selector: 'app-reset-password-page',
-  standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink],
-  template: `
+    selector: 'app-reset-password-page',
+    imports: [ReactiveFormsModule, RouterLink],
+    template: `
     <div class="container">
       <div class="card">
         <div class="header">
           <h2>Reset Password</h2>
         </div>
-
+    
         <form class="row" [formGroup]="form" (ngSubmit)="onSubmit()">
           <label>
             Email
             <input type="email" formControlName="email" />
           </label>
-
+    
           <label>
             Reset token
             <input formControlName="resetToken" />
           </label>
-
+    
           <label>
             New password (min 8 chars)
             <input type="password" formControlName="newPassword" />
           </label>
-
-          <div class="error" *ngIf="error">{{ error }}</div>
-          <div *ngIf="message">{{ message }}</div>
-
+    
+          @if (error) {
+            <div class="error">{{ error }}</div>
+          }
+          @if (message) {
+            <div>{{ message }}</div>
+          }
+    
           <button type="submit" [disabled]="form.invalid || loading">
             {{ loading ? 'Resetting...' : 'Reset password' }}
           </button>
         </form>
-
+    
         <p style="margin-top: 12px">
           <a routerLink="/login">Back to login</a>
         </p>
       </div>
     </div>
-  `
+    `
 })
 export class ResetPasswordPage {
   loading = false;

@@ -1,0 +1,11 @@
+﻿BacklogId,UserStory,Module,Priority,StoryPoints,Status,AcceptanceCriteria
+S2-BL-001,"As a farmer, I want to create and update my profile so that buyers can evaluate my farm details",Farmer Profile,High,8,Done,"Farmer can save region, crops, bio, UPI, and bank details through protected API"
+S2-BL-002,"As a buyer, I want to register with crop preferences and optional card details so that onboarding is faster",Buyer Onboarding,High,5,Done,"Buyer register supports desired crops; optional card data is saved in masked format"
+S2-BL-003,"As a buyer, I want to save a payment card from dashboard so that repeat checkout becomes easier",Buyer Dashboard,High,5,Done,"Card validation is enforced; stored card exposes brand, last4, and expiry only"
+S2-BL-004,"As a buyer, I want to browse farmer profiles so that I can identify suitable partners",Search and Browse,High,8,Done,"Buyer can load farmer cards with region, crops, and bio; text filter narrows results"
+S2-BL-005,"As a farmer, I want to browse buyer profiles so that I can find demand for my crops",Search and Browse,High,5,Done,"Farmer can load buyer cards with desired crops; text filter works across card fields"
+S2-BL-006,"As a logged-in user, I want clear visual action cards on home so that navigation is faster",Home UX,Medium,5,Done,"Role-based cards open expected pages like profile, search, and dashboard"
+S2-BL-007,"As a logged-in user, I want top navigation and profile menu actions so that I can move between core pages",Layout and Navigation,Medium,3,Done,"Topbar links work; logout clears session and redirects to /login"
+S2-BL-008,"As a farmer, I want setup guidance when redirected after registration so that I finish profile completion",Farmer Setup Flow,Medium,3,Done,"/farmer-profile?setup=pending shows completion guidance message"
+S2-BL-009,"As a user, I want a responsive and readable interface so that the app works on mobile and desktop",UI and Responsive Design,Medium,5,Done,"Global layered background renders correctly; key layouts adapt at mobile breakpoints"
+S2-BL-010,"As QA, I want Sprint 2 test execution records so that release readiness is visible",QA and Test Results,Medium,3,Done,"Sprint 2 test results CSV is generated with case-level status and notes"

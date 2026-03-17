@@ -14,6 +14,35 @@ function signToken(user) {
   return jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '7d' });
 }
 
+function detectCardBrand(cardNumber) {
+  if (/^4/.test(cardNumber)) return 'Visa';
+  if (/^(5[1-5]|2[2-7])/.test(cardNumber)) return 'Mastercard';
+  if (/^3[47]/.test(cardNumber)) return 'Amex';
+  if (/^6(?:011|5)/.test(cardNumber)) return 'Discover';
+  return 'Card';
+}
+
+function buildSavedCard(payload, role) {
+  if (role !== 'buyer') return undefined;
+
+  const cardNumber = String(payload?.cardNumber || '').replace(/\D/g, '');
+  const cardHolderName = String(payload?.cardHolderName || '').trim();
+  const expiryMonth = String(payload?.expiryMonth || '').trim();
+  const expiryYear = String(payload?.expiryYear || '').trim();
+
+  if (!cardNumber || !cardHolderName || !expiryMonth || !expiryYear) {
+    return undefined;
+  }
+
+  return {
+    cardHolderName,
+    cardBrand: detectCardBrand(cardNumber),
+    last4: cardNumber.slice(-4),
+    expiryMonth,
+    expiryYear,
+  };
+}
+
 router.post(
   '/register',
   [
@@ -21,6 +50,13 @@ router.post(
     body('email').isEmail().normalizeEmail(),
     body('password').isString().isLength({ min: 8, max: 100 }),
     body('role').isIn(USER_ROLES),
+    body('desiredCrops').optional().isArray(),
+    body('desiredCrops.*').optional().isString().trim().isLength({ min: 1, max: 60 }),
+    body('savedCard').optional().isObject(),
+    body('savedCard.cardHolderName').optional().isString().trim().isLength({ min: 2, max: 120 }),
+    body('savedCard.cardNumber').optional().isString().trim().matches(/^\d{12,19}$/),
+    body('savedCard.expiryMonth').optional().isString().trim().matches(/^(0[1-9]|1[0-2])$/),
+    body('savedCard.expiryYear').optional().isString().trim().matches(/^\d{4}$/),
   ],
   async (req, res, next) => {
     try {
@@ -30,6 +66,10 @@ router.post(
       }
 
       const { name, email, password, role } = req.body;
+      const desiredCrops = role === 'buyer' && Array.isArray(req.body.desiredCrops)
+        ? req.body.desiredCrops.map((crop) => String(crop).trim()).filter(Boolean)
+        : [];
+      const savedCard = buildSavedCard(req.body.savedCard, role);
 
       const existing = await User.findOne({ email });
       if (existing) {
@@ -37,13 +77,20 @@ router.post(
       }
 
       const passwordHash = await bcrypt.hash(password, 12);
-      const user = await User.create({ name, email, passwordHash, role });
+      const user = await User.create({ name, email, passwordHash, role, desiredCrops, savedCard });
 
       const token = signToken(user);
 
       return res.status(201).json({
         token,
-        user: { id: user._id.toString(), name: user.name, email: user.email, role: user.role },
+        user: {
+          id: user._id.toString(),
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          desiredCrops: user.desiredCrops || [],
+          savedCard: user.savedCard || null,
+        },
       });
     } catch (err) {
       return next(err);
@@ -77,7 +124,14 @@ router.post(
 
       return res.json({
         token,
-        user: { id: user._id.toString(), name: user.name, email: user.email, role: user.role },
+        user: {
+          id: user._id.toString(),
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          desiredCrops: user.desiredCrops || [],
+          savedCard: user.savedCard || null,
+        },
       });
     } catch (err) {
       return next(err);
@@ -87,9 +141,18 @@ router.post(
 
 router.get('/me', requireAuth, async (req, res, next) => {
   try {
-    const user = await User.findById(req.user.userId).select('name email role');
+    const user = await User.findById(req.user.userId).select('name email role desiredCrops savedCard');
     if (!user) return res.status(404).json({ message: 'User not found' });
-    return res.json({ user: { id: user._id.toString(), name: user.name, email: user.email, role: user.role } });
+    return res.json({
+      user: {
+        id: user._id.toString(),
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        desiredCrops: user.desiredCrops || [],
+        savedCard: user.savedCard || null,
+      }
+    });
   } catch (err) {
     return next(err);
   }
@@ -99,81 +162,47 @@ router.get('/validate', requireAuth, (req, res) => {
   return res.json({ valid: true, user: req.user });
 });
 
-// In-memory store for reset tokens (in production, use database with expiration)
-const resetTokens = new Map();
-
-router.post(
-  '/forgot-password',
-  [body('email').isEmail().normalizeEmail()],
-  async (req, res, next) => {
-    try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.status(400).json({ message: 'Validation error', errors: errors.array() });
-      }
-
-      const { email } = req.body;
-
-      const user = await User.findOne({ email });
-      if (!user) {
-        // Don't reveal if email exists or not for security
-        return res.json({ message: 'If the email exists, a reset token has been sent.' });
-      }
-
-      // Generate reset token
-      const resetToken = crypto.randomBytes(32).toString('hex');
-      resetTokens.set(email, resetToken);
-
-      // In production, send email with token
-      // For demo, return token in response
-      return res.json({ message: 'Reset token generated.', resetToken });
-    } catch (err) {
-      return next(err);
-    }
-  }
-);
-
-router.post(
-  '/reset-password',
+router.put(
+  '/buyer-payment/me',
+  requireAuth,
   [
-    body('email').isEmail().normalizeEmail(),
-    body('resetToken').isString().trim().isLength({ min: 1 }),
-    body('newPassword').isString().isLength({ min: 8, max: 100 }),
+    body('cardHolderName').isString().trim().isLength({ min: 2, max: 120 }),
+    body('cardNumber').isString().trim().matches(/^\d{12,19}$/),
+    body('expiryMonth').isString().trim().matches(/^(0[1-9]|1[0-2])$/),
+    body('expiryYear').isString().trim().matches(/^\d{4}$/),
   ],
   async (req, res, next) => {
     try {
+      if (req.user.role !== 'buyer') {
+        return res.status(403).json({ message: 'Only buyers can save payment cards' });
+      }
+
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
         return res.status(400).json({ message: 'Validation error', errors: errors.array() });
       }
 
-      const { email, resetToken, newPassword } = req.body;
+      const savedCard = buildSavedCard(req.body, 'buyer');
+      const user = await User.findByIdAndUpdate(
+        req.user.userId,
+        { $set: { savedCard } },
+        { new: true }
+      ).select('name email role desiredCrops savedCard');
 
-      // Check if token matches
-      const storedToken = resetTokens.get(email);
-      if (!storedToken || storedToken !== resetToken) {
-        return res.status(400).json({ message: 'Invalid or expired reset token' });
-      }
-
-      // Find user and update password
-      const user = await User.findOne({ email });
       if (!user) {
         return res.status(404).json({ message: 'User not found' });
       }
 
-      const newPasswordHash = await bcrypt.hash(newPassword, 12);
-      await User.findByIdAndUpdate(user._id, { passwordHash: newPasswordHash });
-
-      // Clear the reset token
-      resetTokens.delete(email);
-
-      // Generate new JWT
-      const token = signToken(user);
-
       return res.json({
-        message: 'Password updated successfully',
-        token,
-        user: { id: user._id.toString(), name: user.name, email: user.email, role: user.role },
+        message: 'Buyer card saved',
+        user: {
+          id: user._id.toString(),
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          desiredCrops: user.desiredCrops || [],
+          savedCard: user.savedCard || null,
+        },
       });
     } catch (err) {
       return next(err);
@@ -250,7 +279,14 @@ router.post(
       return res.json({
         message: 'Password reset successful',
         token,
-        user: { id: user._id.toString(), name: user.name, email: user.email, role: user.role },
+        user: {
+          id: user._id.toString(),
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          desiredCrops: user.desiredCrops || [],
+          savedCard: user.savedCard || null,
+        },
       });
     } catch (err) {
       return next(err);
