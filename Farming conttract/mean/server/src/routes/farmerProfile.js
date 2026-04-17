@@ -3,6 +3,7 @@ const { body, validationResult } = require('express-validator');
 
 const { requireAuth } = require('../middleware/auth');
 const { FarmerProfile } = require('../models/FarmerProfile');
+const { User } = require('../models/User');
 
 const router = express.Router();
 
@@ -12,9 +13,12 @@ router.get('/me', requireAuth, async (req, res, next) => {
       return res.status(403).json({ message: 'Only farmers can access farmer profiles' });
     }
 
-    const profile = await FarmerProfile.findOne({ userId: req.user.userId }).select(
-      'region crops bio upiId bank.accountHolderName bank.accountNumber bank.ifsc bank.bankName'
-    );
+    const [profile, user] = await Promise.all([
+      FarmerProfile.findOne({ userId: req.user.userId }).select(
+        'region crops bio upiId bank.accountHolderName bank.accountNumber bank.ifsc bank.bankName'
+      ),
+      User.findById(req.user.userId).select('profilePhoto'),
+    ]);
     if (!profile) return res.json({ profile: null });
 
     return res.json({
@@ -22,6 +26,7 @@ router.get('/me', requireAuth, async (req, res, next) => {
         region: profile.region,
         crops: profile.crops,
         bio: profile.bio || '',
+        profilePhoto: user?.profilePhoto || '',
         upiId: profile.upiId || '',
         bank: {
           accountHolderName: profile.bank?.accountHolderName || '',
@@ -80,6 +85,7 @@ router.put(
         { $set: { region, crops, bio, upiId, bank } },
         { upsert: true, new: true, setDefaultsOnInsert: true }
       ).select('region crops bio upiId bank.accountHolderName bank.accountNumber bank.ifsc bank.bankName');
+      const user = await User.findById(req.user.userId).select('profilePhoto');
 
       return res.json({
         message: 'Profile saved',
@@ -87,6 +93,7 @@ router.put(
           region: profile.region,
           crops: profile.crops,
           bio: profile.bio || '',
+          profilePhoto: user?.profilePhoto || '',
           upiId: profile.upiId || '',
           bank: {
             accountHolderName: profile.bank?.accountHolderName || '',

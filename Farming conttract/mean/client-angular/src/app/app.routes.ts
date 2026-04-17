@@ -11,6 +11,8 @@ import { MyContractsPage } from './pages/my-contracts/my-contracts.page';
 import { MarketplacePage } from './pages/marketplace/marketplace.page';
 import { SupportPage } from './pages/support/support.page';
 import { FarmerProfilePage } from './pages/farmer-profile/farmer-profile.page';
+import { FarmerViewPage } from './pages/farmer-view/farmer-view.page';
+import { BuyerViewPage } from './pages/buyer-view/buyer-view.page';
 import { ReportsPage } from './pages/reports/reports.page';
 import { AuthShellComponent } from './layout/auth-shell.component';
 import { authGuard } from './auth/auth.guard';
@@ -28,6 +30,8 @@ export const routes: Routes = [
     children: [
       { path: 'home', component: HomePage },
       { path: 'search', component: SearchPage },
+      { path: 'farmers/:id', component: FarmerViewPage },
+      { path: 'buyers/:id', component: BuyerViewPage },
       { path: 'farmer-profile', component: FarmerProfilePage },
       { path: 'my-contracts', component: MyContractsPage },
       { path: 'marketplace', component: MarketplacePage },

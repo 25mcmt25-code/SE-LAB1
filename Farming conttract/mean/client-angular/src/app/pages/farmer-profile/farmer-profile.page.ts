@@ -76,6 +76,26 @@ import { AuthService, FarmerProfile } from '../../auth/auth.service';
           </label>
 
           <label>
+            Profile photo (JPEG or PNG)
+            <input type="file" accept="image/jpeg,image/png" (change)="onProfilePhotoFileSelected($event)" />
+            <span class="input-hint">Upload JPG/PNG up to 2 MB so buyers can identify you quickly.</span>
+          </label>
+          @if (profilePhotoPreview && !photoPreviewFailed) {
+            <div class="profile-photo-preview-wrap">
+              <img
+                class="profile-photo-preview"
+                [src]="profilePhotoPreview"
+                alt="Farmer profile photo preview"
+                (error)="markPhotoPreviewFailed()"
+              />
+            </div>
+            <button type="button" (click)="removeProfilePhoto()">Remove photo</button>
+          }
+          @if (profilePhotoPreview && photoPreviewFailed) {
+            <div class="input-hint">Image preview is unavailable. Please upload a valid JPEG or PNG.</div>
+          }
+
+          <label>
             UPI ID (optional)
             <input formControlName="upiId" placeholder="e.g. name@upi" />
             <span class="input-hint">Add this if you want fast payment.</span>
@@ -110,15 +130,20 @@ import { AuthService, FarmerProfile } from '../../auth/auth.service';
     `
 })
 export class FarmerProfilePage implements OnInit {
+  private readonly maxPhotoBytes = 2 * 1024 * 1024;
+  private readonly profilePhotoPattern = /^data:image\/(?:png|jpeg);base64,[A-Za-z0-9+/=]+$/;
+
   saving = false;
   error = '';
   message = '';
   setupPending = false;
+  photoPreviewFailed = false;
 
   form = this.fb.group({
     region: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(120)]],
     crops: [''],
     bio: [''],
+    profilePhoto: ['', [Validators.maxLength(3000000), Validators.pattern(/^$|^data:image\/(?:png|jpeg);base64,[A-Za-z0-9+/=]+$/)]],
     upiId: [''],
     accountHolderName: [''],
     accountNumber: [''],
@@ -127,6 +152,10 @@ export class FarmerProfilePage implements OnInit {
   });
 
   constructor(private fb: FormBuilder, private auth: AuthService, private route: ActivatedRoute) {}
+
+  get profilePhotoPreview(): string {
+    return String(this.form.value.profilePhoto || '').trim();
+  }
 
   ngOnInit() {
     this.setupPending = this.route.snapshot.queryParamMap.get('setup') === 'pending';
@@ -138,12 +167,14 @@ export class FarmerProfilePage implements OnInit {
           region: data.profile.region,
           crops: (data.profile.crops || []).join(', '),
           bio: data.profile.bio || '',
+          profilePhoto: this.normalizeProfilePhoto(data.profile.profilePhoto),
           upiId: data.profile.upiId || '',
           accountHolderName: data.profile.bank?.accountHolderName || '',
           accountNumber: data.profile.bank?.accountNumber || '',
           ifsc: data.profile.bank?.ifsc || '',
           bankName: data.profile.bank?.bankName || ''
         });
+        this.photoPreviewFailed = false;
       },
       error: (err) => {
         const msg = err?.error?.message || err?.message || 'Failed to load profile';
@@ -164,6 +195,7 @@ export class FarmerProfilePage implements OnInit {
       .map((c) => c.trim())
       .filter(Boolean);
     const bio = String(this.form.value.bio || '').trim();
+    const profilePhoto = String(this.form.value.profilePhoto || '').trim();
     const upiId = String(this.form.value.upiId || '').trim();
 
     const bank = {
@@ -177,9 +209,18 @@ export class FarmerProfilePage implements OnInit {
 
     this.auth.saveMyFarmerProfile(payload).subscribe({
       next: () => {
-        this.saving = false;
-        this.setupPending = false;
-        this.message = 'Profile saved successfully';
+        this.auth.updateMyProfilePhoto({ profilePhoto }).subscribe({
+          next: () => {
+            this.saving = false;
+            this.setupPending = false;
+            this.photoPreviewFailed = false;
+            this.message = 'Profile saved successfully';
+          },
+          error: (err) => {
+            this.saving = false;
+            this.error = err?.error?.message || err?.message || 'Profile details saved, but failed to save profile photo';
+          }
+        });
       },
       error: (err) => {
         this.saving = false;
@@ -187,5 +228,58 @@ export class FarmerProfilePage implements OnInit {
         this.error = msg === 'Only farmers can update farmer profiles' ? 'Only farmers can create a farmer profile.' : msg;
       }
     });
+  }
+
+  markPhotoPreviewFailed() {
+    this.photoPreviewFailed = true;
+  }
+
+  onProfilePhotoFileSelected(event: Event) {
+    const input = event.target as HTMLInputElement | null;
+    const file = input?.files?.[0];
+    if (!file) return;
+
+    if (!this.isSupportedPhotoFile(file)) {
+      this.error = 'Profile photo must be JPEG or PNG format.';
+      if (input) input.value = '';
+      return;
+    }
+
+    if (file.size > this.maxPhotoBytes) {
+      this.error = 'Profile photo must be 2 MB or smaller.';
+      if (input) input.value = '';
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = typeof reader.result === 'string' ? reader.result.trim() : '';
+      if (!this.profilePhotoPattern.test(result)) {
+        this.error = 'Profile photo must be JPEG or PNG format.';
+        return;
+      }
+      this.form.patchValue({ profilePhoto: result });
+      this.error = '';
+      this.photoPreviewFailed = false;
+    };
+    reader.onerror = () => {
+      this.error = 'Unable to read selected image file.';
+    };
+    reader.readAsDataURL(file);
+  }
+
+  removeProfilePhoto() {
+    this.form.patchValue({ profilePhoto: '' });
+    this.photoPreviewFailed = false;
+    this.error = '';
+  }
+
+  private isSupportedPhotoFile(file: File): boolean {
+    return file.type === 'image/jpeg' || file.type === 'image/png';
+  }
+
+  private normalizeProfilePhoto(profilePhoto: string | undefined): string {
+    const value = String(profilePhoto || '').trim();
+    return this.profilePhotoPattern.test(value) ? value : '';
   }
 }

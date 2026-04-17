@@ -35,7 +35,7 @@ import { AuthService } from '../../auth/auth.service';
     
         @if (resetToken) {
           <div style="margin-top: 12px">
-            <div>Reset token (demo):</div>
+            <div>Reset token (demo, 6 digits):</div>
             <pre style="white-space: pre-wrap">{{ resetToken }}</pre>
             <p>
               Go to <a routerLink="/reset-password">Reset Password</a>

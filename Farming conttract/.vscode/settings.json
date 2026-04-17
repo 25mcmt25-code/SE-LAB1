@@ -1,0 +1,8 @@
+{
+    "chat.tools.terminal.autoApprove": {
+        "/^cd \"c:\\\\Users\\\\KISHORE KARTHIKEYA M\\\\Documents\\\\GitHub\\\\SE-LAB1\\\\Farming conttract\\\\mean\\\\server\" ; node -e \"const \\{REPORT_TYPES\\}=require\\('\\./src/models/Report'\\); console\\.log\\(REPORT_TYPES\\); const s=require\\('\\./src/services/reportService'\\); console\\.log\\(typeof s\\.compileData, s\\.validateReportParameters\\('contracts_summary', \\{\\}\\)\\);\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        }
+    }
+}

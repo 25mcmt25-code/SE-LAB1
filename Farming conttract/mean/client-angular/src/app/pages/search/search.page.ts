@@ -3,7 +3,12 @@ import { Component } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 
-import { AuthService, PublicBuyerProfile, PublicFarmerProfile } from '../../auth/auth.service';
+import {
+  AuthService,
+  FarmerBrowseQuery,
+  PublicBuyerProfile,
+  PublicFarmerProfile,
+} from '../../auth/auth.service';
 
 @Component({
     selector: 'app-search-page',
@@ -37,6 +42,18 @@ import { AuthService, PublicBuyerProfile, PublicFarmerProfile } from '../../auth
             <input formControlName="q" [placeholder]="searchPlaceholder" />
             <span class="input-hint">{{ searchHint }}</span>
           </label>
+          @if (userRole === 'buyer') {
+            <div class="split-fields">
+              <label>
+                Filter by crop
+                <input formControlName="crop" placeholder="e.g. rice" />
+              </label>
+              <label>
+                Filter by location
+                <input formControlName="location" placeholder="e.g. Coimbatore" />
+              </label>
+            </div>
+          }
           <button type="submit">Filter</button>
         </form>
 
@@ -63,10 +80,26 @@ import { AuthService, PublicBuyerProfile, PublicFarmerProfile } from '../../auth
         @if (!loading && filteredProfiles.length) {
           <div class="grid profile-grid">
             @for (profile of filteredProfiles; track profile) {
-              <article class="tile profile-tile profile-directory-card">
+              <article
+                class="tile profile-tile profile-directory-card"
+                [routerLink]="profilePreviewLink(profile)"
+                style="cursor: pointer;"
+              >
                 <div class="directory-card-top">
-                  <div class="visual-card-art directory-person-art" [class.profile-art]="isFarmerProfile(profile)" [class.search-art]="!isFarmerProfile(profile)"></div>
-                  <div>
+                  <div class="directory-avatar" [class.has-photo]="hasProfilePhoto(profile) && !isPhotoFailed(profile.id)">
+                    @if (hasProfilePhoto(profile) && !isPhotoFailed(profile.id)) {
+                      <img
+                        class="directory-avatar-image"
+                        [src]="profile.profilePhoto || ''"
+                        [alt]="profile.name + ' profile photo'"
+                        loading="lazy"
+                        (error)="markPhotoFailed(profile.id)"
+                      />
+                    } @else {
+                      <span class="directory-avatar-fallback">{{ getProfileInitials(profile.name) }}</span>
+                    }
+                  </div>
+                  <div class="directory-card-headline">
                     <div class="tile-title">{{ profile.name }}</div>
                     <div class="profile-meta">{{ profile.email }}</div>
                   </div>
@@ -79,6 +112,13 @@ import { AuthService, PublicBuyerProfile, PublicFarmerProfile } from '../../auth
                     }
                   </div>
                   <div class="tile-desc">{{ profile.bio || 'No farm bio added yet.' }}</div>
+                  @if (userRole === 'buyer') {
+                    <div class="action-row" style="margin-top: 10px;">
+                      <a class="button-link secondary" [routerLink]="['/farmers', profile.id]" (click)="$event.stopPropagation()">
+                        View profile
+                      </a>
+                    </div>
+                  }
                 }
                 @if (!isFarmerProfile(profile)) {
                   <div class="profile-chip-row">
@@ -90,6 +130,16 @@ import { AuthService, PublicBuyerProfile, PublicFarmerProfile } from '../../auth
                   <div class="tile-desc">
                     {{ profile.desiredCrops.length ? 'Looking to contract for these crops.' : 'Available for new sourcing conversations and contract opportunities.' }}
                   </div>
+                  @if (userRole === 'farmer') {
+                    <div class="action-row" style="margin-top: 10px;">
+                      <a class="button-link secondary" [routerLink]="['/buyers', profile.id]" (click)="$event.stopPropagation()">
+                        View profile
+                      </a>
+                      <a class="button-link secondary" [routerLink]="['/my-contracts']" [queryParams]="{ buyerId: profile.id }" (click)="$event.stopPropagation()">
+                        Initialize contract
+                      </a>
+                    </div>
+                  }
                 }
               </article>
             }
@@ -104,9 +154,12 @@ export class SearchPage {
   error = '';
   allProfiles: Array<PublicFarmerProfile | PublicBuyerProfile> = [];
   filteredProfiles: Array<PublicFarmerProfile | PublicBuyerProfile> = [];
+  failedPhotoIds = new Set<string>();
 
   form = this.fb.group({
-    q: ['']
+    q: [''],
+    crop: [''],
+    location: [''],
   });
 
   constructor(private fb: FormBuilder, private auth: AuthService) {
@@ -148,12 +201,57 @@ export class SearchPage {
       .trim()
       .toLowerCase();
 
-    if (!query) {
-      this.filteredProfiles = [...this.allProfiles];
-      return;
+    if (this.userRole === 'buyer') {
+      const crop = String(this.form.value.crop || '').trim();
+      const location = String(this.form.value.location || '').trim();
+      if (crop || location) {
+        this.loadProfiles({ crop, location }, query);
+        return;
+      }
     }
 
-    this.filteredProfiles = this.allProfiles.filter((profile) => {
+    this.filteredProfiles = this.filterProfiles(this.allProfiles, query);
+  }
+
+  isFarmerProfile(profile: PublicFarmerProfile | PublicBuyerProfile): profile is PublicFarmerProfile {
+    return profile.role === 'farmer';
+  }
+
+  profilePreviewLink(profile: PublicFarmerProfile | PublicBuyerProfile): string[] {
+    if (this.isFarmerProfile(profile)) {
+      return ['/farmers', profile.id];
+    }
+
+    return ['/buyers', profile.id];
+  }
+
+  hasProfilePhoto(profile: PublicFarmerProfile | PublicBuyerProfile): boolean {
+    return Boolean(profile.profilePhoto && profile.profilePhoto.trim());
+  }
+
+  isPhotoFailed(profileId: string): boolean {
+    return this.failedPhotoIds.has(profileId);
+  }
+
+  markPhotoFailed(profileId: string) {
+    this.failedPhotoIds.add(profileId);
+  }
+
+  getProfileInitials(name: string): string {
+    const parts = String(name || '').trim().split(/\s+/).filter(Boolean);
+    if (!parts.length) return 'U';
+    return parts.slice(0, 2).map((part) => part[0]?.toUpperCase() || '').join('') || 'U';
+  }
+
+  private filterProfiles(
+    source: Array<PublicFarmerProfile | PublicBuyerProfile>,
+    textQuery: string
+  ): Array<PublicFarmerProfile | PublicBuyerProfile> {
+    if (!textQuery) {
+      return [...source];
+    }
+
+    return source.filter((profile) => {
       const farmerTerms = this.isFarmerProfile(profile)
         ? [profile.region, profile.bio, ...(profile.crops || [])]
         : [...(profile.desiredCrops || [])];
@@ -161,24 +259,21 @@ export class SearchPage {
       return [profile.name, profile.email, ...farmerTerms]
         .join(' ')
         .toLowerCase()
-        .includes(query);
+        .includes(textQuery);
     });
   }
 
-  isFarmerProfile(profile: PublicFarmerProfile | PublicBuyerProfile): profile is PublicFarmerProfile {
-    return profile.role === 'farmer';
-  }
-
-  private loadProfiles() {
+  private loadProfiles(filter?: FarmerBrowseQuery, textQuery = '') {
     this.loading = true;
     this.error = '';
+    this.failedPhotoIds.clear();
 
     if (this.userRole === 'buyer') {
-      this.auth.browseFarmers().subscribe({
+      this.auth.browseFarmers(filter).subscribe({
         next: (data: { profiles: PublicFarmerProfile[] }) => {
           this.loading = false;
           this.allProfiles = data.profiles;
-          this.filteredProfiles = [...data.profiles];
+          this.filteredProfiles = this.filterProfiles(data.profiles, textQuery);
         },
         error: (err: { error?: { message?: string }; message?: string }) => {
           this.loading = false;
@@ -192,7 +287,7 @@ export class SearchPage {
       next: (data: { profiles: PublicBuyerProfile[] }) => {
         this.loading = false;
         this.allProfiles = data.profiles;
-        this.filteredProfiles = [...data.profiles];
+        this.filteredProfiles = this.filterProfiles(data.profiles, textQuery);
       },
       error: (err: { error?: { message?: string }; message?: string }) => {
         this.loading = false;

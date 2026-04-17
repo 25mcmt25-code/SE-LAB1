@@ -9,6 +9,7 @@ const userSchema = new mongoose.Schema(
     passwordHash: { type: String, required: true },
     role: { type: String, enum: USER_ROLES, required: true },
     desiredCrops: [{ type: String, trim: true, maxlength: 60 }],
+    profilePhoto: { type: String, trim: true, maxlength: 3000000 },
     savedCard: {
       cardHolderName: { type: String, trim: true, maxlength: 120 },
       cardBrand: { type: String, trim: true, maxlength: 30 },

@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component } from '@angular/core';
 
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
@@ -82,80 +82,10 @@ import { AuthService, UserRole } from '../../auth/auth.service';
               <option value="buyer">Buyer</option>
             </select>
           </label>
-    
-          @if (isFarmer) {
-            <div class="row">
-              <label>
-                Region
-                <input formControlName="region" placeholder="e.g. Tamil Nadu, Coimbatore" />
-                <span class="input-hint">Tell buyers where your farm is.</span>
-              </label>
-              <label>
-                Crops (comma separated)
-                <input formControlName="crops" placeholder="e.g. rice, wheat, sugarcane" />
-                <span class="input-hint">Write the crop names you grow.</span>
-              </label>
-              <label>
-                Short bio (optional)
-                <input formControlName="bio" placeholder="About your farm..." />
-                <span class="input-hint">A short sentence is enough.</span>
-              </label>
-              <label>
-                UPI ID (optional)
-                <input formControlName="upiId" placeholder="e.g. name@upi" />
-                <span class="input-hint">Add payment details if you have them.</span>
-              </label>
-              <div class="row">
-                <div style="font-weight: 600">Bank details (optional)</div>
-                <label>
-                  Account holder name
-                  <input formControlName="accountHolderName" placeholder="Account holder name" />
-                </label>
-                <label>
-                  Account number
-                  <input formControlName="accountNumber" placeholder="Account number" />
-                </label>
-                <label>
-                  IFSC
-                  <input formControlName="ifsc" placeholder="IFSC" />
-                </label>
-                <label>
-                  Bank name
-                  <input formControlName="bankName" placeholder="Bank name" />
-                </label>
-              </div>
-            </div>
-          }
 
-          @if (!isFarmer) {
-            <div class="row">
-              <label>
-                Preferred contract crops
-                <input formControlName="desiredCrops" placeholder="e.g. rice, maize, turmeric" />
-                <span class="input-hint">Write the crops you want to buy on contract.</span>
-              </label>
-              <div class="role-card-copy" style="font-weight: 700; color: #334155;">Save buyer payment card</div>
-              <label>
-                Card holder name
-                <input formControlName="cardHolderName" placeholder="Name on card" />
-              </label>
-              <label>
-                Card number
-                <input formControlName="cardNumber" inputmode="numeric" placeholder="1234123412341234" />
-                <span class="input-hint">Optional. Only the last 4 digits are saved.</span>
-              </label>
-              <div class="split-fields">
-                <label>
-                  Expiry month
-                  <input formControlName="expiryMonth" inputmode="numeric" placeholder="MM" />
-                </label>
-                <label>
-                  Expiry year
-                  <input formControlName="expiryYear" inputmode="numeric" placeholder="YYYY" />
-                </label>
-              </div>
-            </div>
-          }
+          <div class="notice success-banner">
+            Create your account first. We will ask for profile photo, crop details, and payment setup inside My Profile.
+          </div>
     
           @if (error) {
             <div class="error">{{ error }}</div>
@@ -173,7 +103,7 @@ import { AuthService, UserRole } from '../../auth/auth.service';
     </div>
     `
 })
-export class RegisterPage implements OnInit {
+export class RegisterPage {
   loading = false;
   error = '';
 
@@ -185,115 +115,13 @@ export class RegisterPage implements OnInit {
     name: ['', [Validators.required, Validators.minLength(2)]],
     email: ['', [Validators.required, Validators.email]],
     password: ['', [Validators.required, Validators.minLength(8)]],
-    role: ['farmer' as UserRole, [Validators.required]],
-    desiredCrops: [''],
-    cardHolderName: [''],
-    cardNumber: [''],
-    expiryMonth: [''],
-    expiryYear: [''],
-    region: [''],
-    crops: [''],
-    bio: [''],
-    upiId: [''],
-    accountHolderName: [''],
-    accountNumber: [''],
-    ifsc: [''],
-    bankName: ['']
+    role: ['farmer' as UserRole, [Validators.required]]
   });
 
   constructor(private fb: FormBuilder, private auth: AuthService, private router: Router) {}
 
-  ngOnInit() {
-    this.applyRoleValidators(this.form.value.role as UserRole);
-    this.form.controls.role.valueChanges.subscribe((role) => {
-      this.applyRoleValidators((role || 'farmer') as UserRole);
-    });
-  }
-
   setRole(role: UserRole) {
     this.form.patchValue({ role });
-  }
-
-  private applyRoleValidators(role: UserRole) {
-    if (role === 'farmer') {
-      this.form.controls.region.setValidators([Validators.required, Validators.minLength(2)]);
-      this.form.controls.crops.setValidators([Validators.required]);
-      this.form.controls.desiredCrops.clearValidators();
-      this.form.controls.cardHolderName.clearValidators();
-      this.form.controls.cardNumber.clearValidators();
-      this.form.controls.expiryMonth.clearValidators();
-      this.form.controls.expiryYear.clearValidators();
-      this.form.patchValue({ desiredCrops: '' });
-    } else {
-      this.form.controls.region.clearValidators();
-      this.form.controls.crops.clearValidators();
-      this.form.controls.desiredCrops.setValidators([Validators.required]);
-      this.form.controls.cardHolderName.clearValidators();
-      this.form.controls.cardNumber.clearValidators();
-      this.form.controls.expiryMonth.clearValidators();
-      this.form.controls.expiryYear.clearValidators();
-      this.form.patchValue({
-        region: '',
-        crops: '',
-        bio: '',
-        upiId: '',
-        accountHolderName: '',
-        accountNumber: '',
-        ifsc: '',
-        bankName: ''
-      });
-    }
-
-    this.form.controls.region.updateValueAndValidity();
-    this.form.controls.crops.updateValueAndValidity();
-    this.form.controls.desiredCrops.updateValueAndValidity();
-    this.form.controls.cardHolderName.updateValueAndValidity();
-    this.form.controls.cardNumber.updateValueAndValidity();
-    this.form.controls.expiryMonth.updateValueAndValidity();
-    this.form.controls.expiryYear.updateValueAndValidity();
-  }
-
-  private buildFarmerProfilePayload() {
-    return {
-      region: String(this.form.value.region || '').trim(),
-      crops: String(this.form.value.crops || '')
-        .split(',')
-        .map((c) => c.trim())
-        .filter(Boolean),
-      bio: String(this.form.value.bio || '').trim(),
-      upiId: String(this.form.value.upiId || '').trim(),
-      bank: {
-        accountHolderName: String(this.form.value.accountHolderName || '').trim(),
-        accountNumber: String(this.form.value.accountNumber || '').trim(),
-        ifsc: String(this.form.value.ifsc || '').trim(),
-        bankName: String(this.form.value.bankName || '').trim(),
-      }
-    };
-  }
-
-  private buildBuyerDesiredCrops(): string[] {
-    return String(this.form.value.desiredCrops || '')
-      .split(',')
-      .map((crop) => crop.trim())
-      .filter(Boolean);
-  }
-
-  private buildBuyerCardPayload() {
-    const cardHolderName = String(this.form.value.cardHolderName || '').trim();
-    const cardNumber = String(this.form.value.cardNumber || '').replace(/\D/g, '');
-    const expiryMonth = String(this.form.value.expiryMonth || '').trim();
-    const expiryYear = String(this.form.value.expiryYear || '').trim();
-
-    if (!cardHolderName || !cardNumber || !expiryMonth || !expiryYear) {
-      return null;
-    }
-
-    return {
-      cardHolderName,
-      cardNumber,
-      expiryMonth,
-      expiryYear,
-    };
   }
 
   onSubmit() {
@@ -307,27 +135,12 @@ export class RegisterPage implements OnInit {
       name: name!,
       email: email!,
       password: password!,
-      role: role!,
-      desiredCrops: role === 'buyer' ? this.buildBuyerDesiredCrops() : [],
-      savedCard: role === 'buyer' ? this.buildBuyerCardPayload() || undefined : undefined,
+      role: role!
     }).subscribe({
       next: () => {
-        if (role !== 'farmer') {
-          this.loading = false;
-          this.router.navigate(['/home'], { queryParams: { msg: 'register' } });
-          return;
-        }
-
-        this.auth.saveMyFarmerProfile(this.buildFarmerProfilePayload()).subscribe({
-          next: () => {
-            this.loading = false;
-            this.router.navigate(['/home'], { queryParams: { msg: 'register' } });
-          },
-          error: () => {
-            this.loading = false;
-            this.router.navigate(['/farmer-profile'], { queryParams: { setup: 'pending' } });
-          }
-        });
+        this.loading = false;
+        const profileRoute = role === 'farmer' ? '/farmer-profile' : '/dashboard';
+        this.router.navigate([profileRoute], { queryParams: { setup: 'pending', msg: 'register' } });
       },
       error: (err) => {
         this.loading = false;

@@ -22,8 +22,8 @@ import { AuthService } from '../../auth/auth.service';
           </label>
     
           <label>
-            Reset token
-            <input formControlName="resetToken" />
+            Reset token (6 digits)
+            <input formControlName="resetToken" inputmode="numeric" maxlength="6" />
           </label>
     
           <label>
@@ -57,7 +57,7 @@ export class ResetPasswordPage {
 
   form = this.fb.group({
     email: ['', [Validators.required, Validators.email]],
-    resetToken: ['', [Validators.required, Validators.minLength(10)]],
+    resetToken: ['', [Validators.required, Validators.pattern(/^\d{6}$/)]],
     newPassword: ['', [Validators.required, Validators.minLength(8)]]
   });
 

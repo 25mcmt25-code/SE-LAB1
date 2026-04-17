@@ -8,6 +8,7 @@ const { User, USER_ROLES } = require('../models/User');
 const { requireAuth } = require('../middleware/auth');
 
 const router = express.Router();
+const PROFILE_PHOTO_DATA_URL_RE = /^data:image\/(?:png|jpeg);base64,[A-Za-z0-9+/=]+$/;
 
 function signToken(user) {
   const payload = { userId: user._id.toString(), role: user.role };
@@ -43,6 +44,27 @@ function buildSavedCard(payload, role) {
   };
 }
 
+function normalizeProfilePhoto(profilePhoto) {
+  return typeof profilePhoto === 'string' ? profilePhoto.trim() : '';
+}
+
+function isSupportedProfilePhoto(profilePhoto) {
+  if (!profilePhoto) return true;
+  return PROFILE_PHOTO_DATA_URL_RE.test(profilePhoto);
+}
+
+function toAuthUser(user) {
+  return {
+    id: user._id.toString(),
+    name: user.name,
+    email: user.email,
+    role: user.role,
+    desiredCrops: user.desiredCrops || [],
+    profilePhoto: user.profilePhoto || '',
+    savedCard: user.savedCard || null,
+  };
+}
+
 router.post(
   '/register',
   [
@@ -57,6 +79,17 @@ router.post(
     body('savedCard.cardNumber').optional().isString().trim().matches(/^\d{12,19}$/),
     body('savedCard.expiryMonth').optional().isString().trim().matches(/^(0[1-9]|1[0-2])$/),
     body('savedCard.expiryYear').optional().isString().trim().matches(/^\d{4}$/),
+    body('profilePhoto')
+      .optional({ values: 'falsy' })
+      .isString()
+      .trim()
+      .isLength({ max: 3000000 })
+      .custom((value) => {
+        if (!isSupportedProfilePhoto(String(value).trim())) {
+          throw new Error('Profile photo must be a PNG or JPEG image');
+        }
+        return true;
+      }),
   ],
   async (req, res, next) => {
     try {
@@ -70,6 +103,7 @@ router.post(
         ? req.body.desiredCrops.map((crop) => String(crop).trim()).filter(Boolean)
         : [];
       const savedCard = buildSavedCard(req.body.savedCard, role);
+      const profilePhoto = normalizeProfilePhoto(req.body.profilePhoto);
 
       const existing = await User.findOne({ email });
       if (existing) {
@@ -77,20 +111,13 @@ router.post(
       }
 
       const passwordHash = await bcrypt.hash(password, 12);
-      const user = await User.create({ name, email, passwordHash, role, desiredCrops, savedCard });
+      const user = await User.create({ name, email, passwordHash, role, desiredCrops, profilePhoto, savedCard });
 
       const token = signToken(user);
 
       return res.status(201).json({
         token,
-        user: {
-          id: user._id.toString(),
-          name: user.name,
-          email: user.email,
-          role: user.role,
-          desiredCrops: user.desiredCrops || [],
-          savedCard: user.savedCard || null,
-        },
+        user: toAuthUser(user),
       });
     } catch (err) {
       return next(err);
@@ -124,14 +151,7 @@ router.post(
 
       return res.json({
         token,
-        user: {
-          id: user._id.toString(),
-          name: user.name,
-          email: user.email,
-          role: user.role,
-          desiredCrops: user.desiredCrops || [],
-          savedCard: user.savedCard || null,
-        },
+        user: toAuthUser(user),
       });
     } catch (err) {
       return next(err);
@@ -141,17 +161,10 @@ router.post(
 
 router.get('/me', requireAuth, async (req, res, next) => {
   try {
-    const user = await User.findById(req.user.userId).select('name email role desiredCrops savedCard');
+    const user = await User.findById(req.user.userId).select('name email role desiredCrops profilePhoto savedCard');
     if (!user) return res.status(404).json({ message: 'User not found' });
     return res.json({
-      user: {
-        id: user._id.toString(),
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        desiredCrops: user.desiredCrops || [],
-        savedCard: user.savedCard || null,
-      }
+      user: toAuthUser(user)
     });
   } catch (err) {
     return next(err);
@@ -161,6 +174,50 @@ router.get('/me', requireAuth, async (req, res, next) => {
 router.get('/validate', requireAuth, (req, res) => {
   return res.json({ valid: true, user: req.user });
 });
+
+router.put(
+  '/me',
+  requireAuth,
+  [
+    body('name').isString().trim().isLength({ min: 2, max: 80 }),
+    body('desiredCrops').optional().isArray(),
+    body('desiredCrops.*').optional().isString().trim().isLength({ min: 1, max: 60 }),
+  ],
+  async (req, res, next) => {
+    try {
+      if (req.user.role !== 'buyer') {
+        return res.status(403).json({ message: 'Only buyers can update profile' });
+      }
+
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ message: 'Validation error', errors: errors.array() });
+      }
+
+      const name = String(req.body.name || '').trim();
+      const desiredCrops = Array.isArray(req.body.desiredCrops)
+        ? req.body.desiredCrops.map((crop) => String(crop).trim()).filter(Boolean)
+        : [];
+
+      const user = await User.findByIdAndUpdate(
+        req.user.userId,
+        { $set: { name, desiredCrops } },
+        { new: true }
+      ).select('name email role desiredCrops profilePhoto savedCard');
+
+      if (!user) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+
+      return res.json({
+        message: 'Buyer profile updated',
+        user: toAuthUser(user),
+      });
+    } catch (err) {
+      return next(err);
+    }
+  }
+);
 
 router.put(
   '/buyer-payment/me',
@@ -187,7 +244,7 @@ router.put(
         req.user.userId,
         { $set: { savedCard } },
         { new: true }
-      ).select('name email role desiredCrops savedCard');
+      ).select('name email role desiredCrops profilePhoto savedCard');
 
       if (!user) {
         return res.status(404).json({ message: 'User not found' });
@@ -195,14 +252,51 @@ router.put(
 
       return res.json({
         message: 'Buyer card saved',
-        user: {
-          id: user._id.toString(),
-          name: user.name,
-          email: user.email,
-          role: user.role,
-          desiredCrops: user.desiredCrops || [],
-          savedCard: user.savedCard || null,
-        },
+        user: toAuthUser(user),
+      });
+    } catch (err) {
+      return next(err);
+    }
+  }
+);
+
+router.put(
+  '/me/profile-photo',
+  requireAuth,
+  [
+    body('profilePhoto')
+      .optional({ values: 'falsy' })
+      .isString()
+      .trim()
+      .isLength({ max: 3000000 })
+      .custom((value) => {
+        if (!isSupportedProfilePhoto(String(value).trim())) {
+          throw new Error('Profile photo must be a PNG or JPEG image');
+        }
+        return true;
+      }),
+  ],
+  async (req, res, next) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ message: 'Validation error', errors: errors.array() });
+      }
+
+      const profilePhoto = normalizeProfilePhoto(req.body.profilePhoto);
+      const user = await User.findByIdAndUpdate(
+        req.user.userId,
+        { $set: { profilePhoto } },
+        { new: true }
+      ).select('name email role desiredCrops profilePhoto savedCard');
+
+      if (!user) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+
+      return res.json({
+        message: 'Profile photo updated',
+        user: toAuthUser(user),
       });
     } catch (err) {
       return next(err);
@@ -227,7 +321,7 @@ router.post(
         return res.json({ message: 'If the email exists, a reset link will be generated.' });
       }
 
-      const resetToken = crypto.randomBytes(32).toString('hex');
+      const resetToken = String(crypto.randomInt(0, 1000000)).padStart(6, '0');
       const resetTokenHash = crypto.createHash('sha256').update(resetToken).digest('hex');
       const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
 
@@ -246,7 +340,7 @@ router.post(
   '/reset-password',
   [
     body('email').isEmail().normalizeEmail(),
-    body('resetToken').isString().isLength({ min: 10 }),
+    body('resetToken').isString().trim().matches(/^\d{6}$/),
     body('newPassword').isString().isLength({ min: 8, max: 100 }),
   ],
   async (req, res, next) => {
@@ -256,7 +350,8 @@ router.post(
         return res.status(400).json({ message: 'Validation error', errors: errors.array() });
       }
 
-      const { email, resetToken, newPassword } = req.body;
+      const { email, newPassword } = req.body;
+      const resetToken = String(req.body.resetToken || '').trim();
       const resetTokenHash = crypto.createHash('sha256').update(resetToken).digest('hex');
 
       const user = await User.findOne({
@@ -279,14 +374,7 @@ router.post(
       return res.json({
         message: 'Password reset successful',
         token,
-        user: {
-          id: user._id.toString(),
-          name: user.name,
-          email: user.email,
-          role: user.role,
-          desiredCrops: user.desiredCrops || [],
-          savedCard: user.savedCard || null,
-        },
+        user: toAuthUser(user),
       });
     } catch (err) {
       return next(err);

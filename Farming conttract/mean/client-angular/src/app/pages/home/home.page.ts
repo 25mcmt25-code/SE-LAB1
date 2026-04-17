@@ -32,6 +32,18 @@ import { AuthService, AuthUser, FarmerProfile } from '../../auth/auth.service';
           </div>
         </div>
         <div class="status-panel illustrated-panel">
+          <div class="home-profile-avatar-wrap">
+            @if (showProfilePhoto) {
+              <img
+                class="home-profile-avatar"
+                [src]="profilePhoto"
+                alt="Profile photo"
+                (error)="markHomePhotoFailed()"
+              />
+            } @else {
+              <span class="home-profile-avatar-fallback">{{ profileInitials }}</span>
+            }
+          </div>
           <div class="farm-picture" aria-hidden="true">
             <svg viewBox="0 0 220 170" class="farm-svg">
               <rect x="20" y="108" width="180" height="42" rx="10" class="soil-band"></rect>
@@ -84,17 +96,25 @@ import { AuthService, AuthUser, FarmerProfile } from '../../auth/auth.service';
         </div>
 
         <div class="visual-action-grid">
-          @if (isFarmer) {
-            <a class="visual-action-card" routerLink="/farmer-profile">
-              <span class="visual-card-art profile-art"></span>
-              <span class="visual-card-title">{{ hasProfile ? 'Update My Farm' : 'Create My Farm' }}</span>
-              <span class="visual-card-copy">{{ profileHint }}</span>
-            </a>
-          }
+          <a class="visual-action-card" [routerLink]="profileRoute">
+            <span class="visual-card-art profile-art"></span>
+            <span class="visual-card-title">{{ profileButtonLabel }}</span>
+            <span class="visual-card-copy">{{ profileButtonHint }}</span>
+          </a>
           <a class="visual-action-card" routerLink="/search">
             <span class="visual-card-art search-art"></span>
             <span class="visual-card-title">{{ browseButtonLabel }}</span>
             <span class="visual-card-copy">{{ browseHint }}</span>
+          </a>
+          <a class="visual-action-card" routerLink="/marketplace">
+            <span class="visual-card-art market-art"></span>
+            <span class="visual-card-title">{{ marketplaceButtonLabel }}</span>
+            <span class="visual-card-copy">{{ marketplaceHint }}</span>
+          </a>
+          <a class="visual-action-card" routerLink="/my-contracts">
+            <span class="visual-card-art payment-art"></span>
+            <span class="visual-card-title">{{ contractsButtonLabel }}</span>
+            <span class="visual-card-copy">{{ contractsHint }}</span>
           </a>
           @if (isFarmer) {
             <a class="visual-action-card" routerLink="/farmer-profile">
@@ -103,18 +123,11 @@ import { AuthService, AuthUser, FarmerProfile } from '../../auth/auth.service';
               <span class="visual-card-copy">{{ paymentHint }}</span>
             </a>
           }
-          @if (!isFarmer) {
-            <a class="visual-action-card" routerLink="/dashboard">
-              <span class="visual-card-art payment-art"></span>
-              <span class="visual-card-title">Open My Dashboard</span>
-              <span class="visual-card-copy">See your buyer account and preferred crops in one place.</span>
-            </a>
-          }
         </div>
 
         <div class="grid summary-grid">
           <article class="metric-card">
-            <span class="metric-label">Farmer profile</span>
+            <span class="metric-label">{{ profileMetricLabel }}</span>
             <strong>{{ profileStatus }}</strong>
             <p>{{ profileHint }}</p>
           </article>
@@ -139,6 +152,7 @@ import { AuthService, AuthUser, FarmerProfile } from '../../auth/auth.service';
 export class HomePage implements OnInit {
   success = '';
   error = '';
+  homePhotoLoadFailed = false;
   user: AuthUser | null = null;
   profile: FarmerProfile | null = null;
   profileLoaded = false;
@@ -189,25 +203,57 @@ export class HomePage implements OnInit {
     return `Welcome back, ${this.user.name}`;
   }
 
+  get profilePhoto(): string {
+    return String(this.user?.profilePhoto || '').trim();
+  }
+
+  get showProfilePhoto(): boolean {
+    return Boolean(this.profilePhoto) && !this.homePhotoLoadFailed;
+  }
+
+  get profileInitials(): string {
+    const name = String(this.user?.name || '').trim();
+    if (!name) return 'U';
+    const parts = name.split(/\s+/).filter(Boolean);
+    return parts.slice(0, 2).map((part) => part[0]?.toUpperCase() || '').join('') || 'U';
+  }
+
   get heroText(): string {
     return this.isFarmer
       ? 'Use the big picture buttons below to open your profile, see buyers, and finish payment details without reading long menus.'
-      : 'Use the big picture buttons below to open your dashboard, see farmers, and manage your saved payment details without reading long menus.';
+      : 'Use the big picture buttons below to open your profile, see farmers, and manage your saved payment details without reading long menus.';
   }
 
   get profileStatus(): string {
-    if (!this.isFarmer) return 'Buyer account';
+    if (!this.isFarmer) return 'Available';
     if (!this.profileLoaded) return 'Checking';
     return this.hasProfile ? 'Configured' : 'Pending';
   }
 
   get profileHint(): string {
-    if (!this.isFarmer) return 'Buyer accounts do not require a farmer production profile.';
+    if (!this.isFarmer) return 'Open My Profile to update buyer details, preferred crops, and profile photo.';
     if (!this.profileLoaded) return 'Loading farmer profile details.';
     if (this.hasProfile) {
       return `Region: ${this.profile?.region}. Crops listed: ${(this.profile?.crops || []).length}.`;
     }
     return 'Create your region, crop list, and farm bio so buyers can review your details later.';
+  }
+
+  get profileRoute(): string {
+    return this.isFarmer ? '/farmer-profile' : '/dashboard';
+  }
+
+  get profileButtonLabel(): string {
+    if (!this.isFarmer) return 'Open My Profile';
+    return this.hasProfile ? 'Open My Profile' : 'Create My Profile';
+  }
+
+  get profileButtonHint(): string {
+    return this.profileHint;
+  }
+
+  get profileMetricLabel(): string {
+    return this.isFarmer ? 'Farmer profile' : 'Buyer profile';
   }
 
   get paymentStatus(): string {
@@ -236,6 +282,30 @@ export class HomePage implements OnInit {
 
   get browseButtonLabel(): string {
     return this.isFarmer ? 'Browse buyer profiles' : 'Browse farmer profiles';
+  }
+
+  get marketplaceButtonLabel(): string {
+    return this.isFarmer ? 'Publish crop listing' : 'Open marketplace';
+  }
+
+  get marketplaceHint(): string {
+    return this.isFarmer
+      ? 'Add live crop quantity and pricing so buyers can discover your offer.'
+      : 'View active farmer crop listings with location, price, and availability.';
+  }
+
+  get contractsButtonLabel(): string {
+    return this.isFarmer ? 'Contracts & payments' : 'Upload payment proof';
+  }
+
+  get contractsHint(): string {
+    return this.isFarmer
+      ? 'Initialize contracts with buyers, review incoming requests, and verify buyer payment screenshots.'
+      : 'Submit payment screenshot and reference details for farmer verification.';
+  }
+
+  markHomePhotoFailed() {
+    this.homePhotoLoadFailed = true;
   }
 
   logout() {
